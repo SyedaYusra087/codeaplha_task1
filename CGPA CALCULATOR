@@ -1,0 +1,195 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <iomanip>
+#include <cctype>
+#include <algorithm>
+
+using namespace std;
+
+// Function to convert letter grade to grade points (4.0 scale)
+double gradeToPoints(const string& grade) {
+    string g = grade;
+    // Convert to uppercase for case-insensitive comparison
+    transform(g.begin(), g.end(), g.begin(), ::toupper);
+
+    // Remove possible leading/trailing spaces
+    g.erase(0, g.find_first_not_of(" \t"));
+    g.erase(g.find_last_not_of(" \t") + 1);
+
+    if (g == "A") return 4.0;
+    if (g == "A-") return 3.7;
+    if (g == "B+") return 3.3;
+    if (g == "B") return 3.0;
+    if (g == "B-") return 2.7;
+    if (g == "C+") return 2.3;
+    if (g == "C") return 2.0;
+    if (g == "C-") return 1.7;
+    if (g == "D+") return 1.3;
+    if (g == "D") return 1.0;
+    if (g == "D-") return 0.7;
+    if (g == "F") return 0.0;
+
+    // Invalid grade
+    return -1.0;
+}
+
+// Structure to store course information
+struct Course {
+    string gradeLetter;
+    int creditHours;
+    double gradePoints;     // points from letter grade
+    double qualityPoints;   // gradePoints * creditHours
+};
+
+int main() {
+    cout << "=============================================\n";
+    cout << "        CGPA CALCULATOR (Semester + Overall)\n";
+    cout << "=============================================\n\n";
+
+    int numCourses;
+
+    // Input number of courses
+    while (true) {
+        cout << "Enter the number of courses taken this semester: ";
+        cin >> numCourses;
+        if (cin.fail() || numCourses <= 0) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            cout << "Invalid input. Please enter a positive integer.\n";
+        }
+        else {
+            break;
+        }
+    }
+    cin.ignore(); // clear newline
+
+    vector<Course> courses;
+    double totalGradePoints = 0.0;
+    int totalCredits = 0;
+
+    // Input each course details
+    for (int i = 1; i <= numCourses; ++i) {
+        cout << "\n--- Course " << i << " ---\n";
+
+        string gradeLetter;
+        int creditHours;
+        double gradePoints = -1.0;
+
+        // Input grade letter with validation
+        while (true) {
+            cout << "Enter grade (e.g., A, A-, B+, B, C, F): ";
+            cin >> gradeLetter;
+            gradePoints = gradeToPoints(gradeLetter);
+            if (gradePoints >= 0.0) {
+                break;
+            }
+            else {
+                cout << "Invalid grade! Please use standard grades like A, B+, C-, etc.\n";
+            }
+        }
+
+        // Input credit hours with validation
+        while (true) {
+            cout << "Enter credit hours for this course: ";
+            cin >> creditHours;
+            if (cin.fail() || creditHours <= 0) {
+                cin.clear();
+                cin.ignore(10000, '\n');
+                cout << "Invalid input. Credit hours must be a positive integer.\n";
+            }
+            else {
+                break;
+            }
+        }
+
+        double qualityPoints = gradePoints * creditHours;
+
+        // Store course
+        Course c;
+        c.gradeLetter = gradeLetter;
+        c.creditHours = creditHours;
+        c.gradePoints = gradePoints;
+        c.qualityPoints = qualityPoints;
+        courses.push_back(c);
+
+        // Update totals
+        totalGradePoints += qualityPoints;
+        totalCredits += creditHours;
+    }
+
+    // Display individual course details
+    cout << "\n\n=============================================\n";
+    cout << "           COURSE DETAILS\n";
+    cout << "=============================================\n";
+    cout << left << setw(10) << "Course"
+        << setw(10) << "Grade"
+        << setw(15) << "Credit Hours"
+        << setw(15) << "Grade Points"
+        << "Quality Points\n";
+    cout << "---------------------------------------------\n";
+
+    for (size_t i = 0; i < courses.size(); ++i) {
+        cout << left << setw(10) << ("#" + to_string(i + 1))
+            << setw(10) << courses[i].gradeLetter
+            << setw(15) << courses[i].creditHours
+            << setw(15) << fixed << setprecision(2) << courses[i].gradePoints
+            << fixed << setprecision(2) << courses[i].qualityPoints << "\n";
+    }
+
+    cout << "---------------------------------------------\n";
+    cout << "Total Credits: " << totalCredits << endl;
+    cout << "Total Grade Points (Quality Points): " << fixed << setprecision(2) << totalGradePoints << endl;
+
+    // Compute semester GPA
+    double semesterGPA = 0.0;
+    if (totalCredits > 0) {
+        semesterGPA = totalGradePoints / totalCredits;
+    }
+    else {
+        cout << "\nWarning: No credits registered. GPA cannot be computed.\n";
+        return 1;
+    }
+
+    cout << "\nSemester GPA: " << fixed << setprecision(2) << semesterGPA << endl;
+
+    // Ask user if they want to include previous semesters for overall CGPA
+    char choice;
+    double overallCGPA = semesterGPA; // default if no previous data
+    cout << "\nDo you have previous semester records to calculate overall CGPA? (y/n): ";
+    cin >> choice;
+
+    if (choice == 'y' || choice == 'Y') {
+        double prevTotalPoints;
+        int prevTotalCredits;
+
+        cout << "Enter your previous total grade points (sum of gradePoint * creditHours): ";
+        cin >> prevTotalPoints;
+        cout << "Enter your previous total credit hours: ";
+        cin >> prevTotalCredits;
+
+        if (prevTotalCredits > 0 || totalCredits > 0) {
+            double combinedPoints = prevTotalPoints + totalGradePoints;
+            int combinedCredits = prevTotalCredits + totalCredits;
+            if (combinedCredits > 0) {
+                overallCGPA = combinedPoints / combinedCredits;
+            }
+        }
+        else {
+            cout << "Invalid previous credits. Using only current semester.\n";
+            overallCGPA = semesterGPA;
+        }
+    }
+
+    // Display final CGPA
+    cout << "\n=============================================\n";
+    cout << "              FINAL RESULT\n";
+    cout << "=============================================\n";
+    cout << "Semester GPA  : " << fixed << setprecision(2) << semesterGPA << endl;
+    cout << "Overall CGPA  : " << fixed << setprecision(2) << overallCGPA << endl;
+    cout << "=============================================\n\n";
+
+    cout << "Thank you for using the CGPA Calculator!\n";
+
+    return 0;
+}
